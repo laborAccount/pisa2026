@@ -1,0 +1,15 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# log
+logs/
+
+# video file path
+video/static/video/
+
+# IDE
+.idea/
+
+# migration cache
+**/migrations/__pycache__/

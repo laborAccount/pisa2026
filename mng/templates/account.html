@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="ko">
+{% load static %}
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PISA 2022 관리자</title>
+  <script src="{% static 'common/vendor/jquery/jquery-3.2.1.min.js' %}"></script>
+  <script src="{% static 'common/vendor/cookies/cookies.js' %}"></script>
+  <script src="{% static 'common/vendor/bootstrap/js/bootstrap.min.js' %}"></script>
+  <link rel="stylesheet" type="text/css" href="{% static 'common/vendor/bootstrap/css/bootstrap.min.css' %}">
+  <link rel="stylesheet" type="text/css" href="{% static 'common/fonts/font-awesome-4.7.0/css/font-awesome.min.css' %}">
+  <link rel="stylesheet" type="text/css" href="{% static 'common/css/util.css' %}">
+  <link rel="stylesheet" type="text/css" href="{% static 'common/css/main.css' %}">
+  <style>
+    /* ── 레이아웃 ── */
+    body, html { height: 100%; margin: 0; font-family: 'Poppins-Regular', sans-serif; background: #f2f2f2; }
+
+    .admin-wrapper { display: flex; min-height: 100vh; }
+
+    /* ㅡ Circle 로딩 오버레이 ㅡ */
+    .loading-overlay {
+        display: none;
+        position: fixed;   /* ← fixed 여야 함! */
+        top: 0; left: 0; right: 0; bottom: 0;  /* inset 대신 이걸로 */
+        background: rgba(0,0,0,0.45);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 16px;
+        }
+    .loading-overlay.show {
+        display: flex !important;  /* !important 추가 */
+    }
+
+    /* ── 사이드바 ── */
+    .sidebar {
+      width: 240px; min-width: 240px;
+      background: linear-gradient(180deg, #155bd5 0%, #1c3ab6 100%);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; height: 100vh;
+      z-index: 100; box-shadow: 2px 0 8px rgba(0,0,0,0.15);
+    }
+    .sidebar-brand {
+      padding: 28px 20px 22px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      color: #fff; font-size: 13px; font-weight: 600; line-height: 1.6;
+      text-align: center;
+    }
+    .sidebar-brand span { display: block; font-size: 11px; font-weight: 400; opacity: 0.75; margin-top: 4px; }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 22px; color: rgba(255,255,255,0.75);
+      font-size: 13.5px; text-decoration: none;
+      transition: all 0.2s; border-left: 3px solid transparent;
+    }
+    .sidebar-nav a:hover, .sidebar-nav a.active {
+      color: #fff; background: rgba(255,255,255,0.12);
+      border-left-color: #21d4fd;
+    }
+    .sidebar-nav a i { width: 18px; text-align: center; font-size: 14px; }
+    .sidebar-footer {
+      padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.5); font-size: 11px; text-align: center;
+    }
+
+    /* ── 메인 콘텐츠 ── */
+    .main-content { margin-left: 240px; flex: 1; display: flex; flex-direction: column; }
+
+    /* ── 상단 헤더 ── */
+    .topbar {
+      background: #fff; height: 58px; display: flex; align-items: center;
+      padding: 0 28px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      position: sticky; top: 0; z-index: 50;
+      justify-content: space-between;
+    }
+    .topbar-title { font-size: 15px; font-weight: 600; color: #333; }
+    .topbar-user { font-size: 13px; color: #666; display: flex; align-items: center; gap: 8px; }
+    .topbar-user i { color: #155bd5; }
+    .topbar-user .logout-btn {
+      background: #f0f0f0; border: none; border-radius: 5px;
+      padding: 4px 12px; font-size: 12px; color: #555; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .topbar-user .logout-btn:hover { background: #ddd; }
+
+    /* ── 페이지 본문 ── */
+    .page-body { padding: 28px 32px; flex: 1; }
+    .section-title {
+      font-size: 15px; font-weight: 700; color: #222;
+      margin-bottom: 16px; padding-bottom: 10px;
+      border-bottom: 2px solid #155bd5;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title i { color: #155bd5; }
+
+    /* ── 카드 ── */
+    .admin-card {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+      padding: 26px 28px; margin-bottom: 28px;
+    }
+
+    /* ── 업로드 박스 ── */
+    .upload-box {
+      border: 2px dashed #c8d8f8; border-radius: 10px;
+      padding: 36px 24px; text-align: center;
+      background: #f7faff; cursor: pointer; transition: all 0.2s;
+      position: relative;
+    }
+    .upload-box:hover { border-color: #155bd5; background: #eef4ff; }
+    .upload-box input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-box i { font-size: 36px; color: #155bd5; margin-bottom: 10px; display: block; }
+    .upload-box .upload-label { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 4px; }
+    .upload-box .upload-hint { font-size: 12px; color: #888; }
+    .upload-box .upload-hint span { color: #155bd5; font-weight: 600; }
+    .upload-box.drag-over { border-color: #21d4fd; background: #e6faff; }
+
+    /* 선택된 파일명 표시 */
+    .file-chosen {
+      margin-top: 12px; font-size: 13px; color: #444;
+      background: #eef4ff; border-radius: 6px; padding: 8px 14px;
+      display: none; align-items: center; gap: 8px;
+    }
+    .file-chosen i { color: #155bd5; }
+
+    /* ── 버튼 ── */
+    .btn-primary-grad {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 26px; border-radius: 25px; border: none;
+      background: linear-gradient(right, #21d4fd, #b721ff, #21d4fd, #b721ff);
+      background: linear-gradient(90deg, #155bd5, #21d4fd);
+      color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.2s; text-decoration: none;
+    }
+    .btn-primary-grad:hover { opacity: 0.88; color: #fff; }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 20px; border-radius: 25px;
+      border: 2px solid #155bd5; background: transparent;
+      color: #155bd5; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; text-decoration: none;
+    }
+    .btn-outline:hover { background: #155bd5; color: #fff; }
+    .btn-row { display: flex; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+
+    /* ── 진행 바 ── */
+    .upload-progress { display: none; margin-top: 14px; }
+    .progress { height: 8px; border-radius: 4px; background: #e0e0e0; overflow: hidden; }
+    .progress-bar {
+      height: 100%; border-radius: 4px; width: 0%;
+      background: linear-gradient(90deg, #155bd5, #21d4fd);
+      transition: width 0.3s;
+    }
+    .progress-label { font-size: 12px; color: #666; margin-top: 5px; }
+
+    /* ── 비디오 업로드 분기 탭 ── */
+    .video-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .video-tab-btn {
+      padding: 7px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;
+      border: 2px solid #ddd; background: #fff; color: #666; cursor: pointer; transition: all 0.2s;
+    }
+    .video-tab-btn.active { border-color: #155bd5; background: #155bd5; color: #fff; }
+    .video-tab-btn:hover:not(.active) { border-color: #155bd5; color: #155bd5; }
+    .video-tab-content { display: none; }
+    .video-tab-content.active { display: block; }
+    .video-type-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 700; margin-right: 4px;
+      background: #eef4ff; color: #155bd5;
+    }
+
+    /* ── 계정 목록 테이블 ── */
+    .table-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
+    }
+    .search-box {
+      display: flex; align-items: center; gap: 0;
+      border: 1.5px solid #ddd; border-radius: 6px; overflow: hidden;
+      background: #fff;
+    }
+    .search-box input {
+      border: none; outline: none; padding: 7px 12px; font-size: 13px;
+      width: 220px; color: #333; background: transparent;
+    }
+    .search-box button {
+      padding: 7px 13px; background: #f5f5f5; border: none;
+      border-left: 1.5px solid #ddd; cursor: pointer; color: #555; transition: background 0.2s;
+    }
+    .search-box button:hover { background: #eee; }
+    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tbl thead tr { background: #f0f4fc; }
+    .tbl th {
+      padding: 11px 14px; text-align: left; color: #444;
+      font-weight: 700; border-bottom: 2px solid #dde4f5;
+      white-space: nowrap;
+    }
+    .tbl td { padding: 10px 14px; color: #555; border-bottom: 1px solid #eee; vertical-align: middle; }
+    .tbl tbody tr:hover { background: #fafcff; }
+    .tbl tbody tr:last-child td { border-bottom: none; }
+    .badge-role {
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 700;
+    }
+    .badge-role.admin { background: #fce4eb; color: #e6185e; }
+    .badge-role.teacher { background: #eaf5e8; color: #2da82a; }
+    .badge-role.resp { background: #e2ecff; color: #155bd5; }
+    .badge-status {
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 11px; font-weight: 700;
+    }
+    .badge-status.active { background: #eafbe7; color: #13d527; }
+    .badge-status.inactive { background: #f0f0f0; color: #999; }
+    .tbl-action { display: flex; gap: 6px; }
+    .tbl-btn {
+      padding: 4px 12px; border-radius: 5px; font-size: 12px;
+      font-weight: 600; border: none; cursor: pointer; transition: all 0.2s;
+    }
+    .tbl-btn.edit { background: #e2ecff; color: #155bd5; }
+    .tbl-btn.edit:hover { background: #155bd5; color: #fff; }
+    .tbl-btn.del { background: #fce4eb; color: #e6185e; }
+    .tbl-btn.del:hover { background: #e6185e; color: #fff; }
+    .table-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 14px; font-size: 12px; color: #888; flex-wrap: wrap; gap: 8px;
+    }
+    .pagination { display: flex; gap: 4px; }
+    .page-btn {
+      width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+      border-radius: 5px; border: 1.5px solid #ddd; background: #fff;
+      font-size: 12px; font-weight: 600; cursor: pointer; color: #555; transition: all 0.2s;
+    }
+    .page-btn:hover, .page-btn.active { border-color: #155bd5; background: #155bd5; color: #fff; }
+
+    /* ── 토스트 알림 ── */
+    .toast-wrap {
+      position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast-msg {
+      background: #fff; border-radius: 8px; padding: 14px 18px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.13);
+      font-size: 13px; color: #333; min-width: 240px;
+      display: flex; align-items: center; gap: 10px;
+      animation: slideUp 0.3s ease;
+    }
+    .toast-msg.success i { color: #13d527; }
+    .toast-msg.error i { color: #e6185e; }
+    .toast-msg.info i { color: #155bd5; }
+    @keyframes slideUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: translateY(0); } }
+
+    /* ── 반응형 ── */
+    @media (max-width: 900px) {
+      .sidebar { width: 64px; min-width: 64px; }
+      .sidebar-brand, .sidebar-nav a span, .sidebar-footer { display: none; }
+      .sidebar-nav a { justify-content: center; padding: 14px; gap: 0; }
+      .sidebar-nav a i { width: auto; font-size: 18px; }
+      .main-content { margin-left: 64px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-wrapper">
+
+  <!-- ===== 사이드바 ===== -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      PISA 2022
+      <span>표집학교 온라인 연수</span>
+      <span style="margin-top:6px; font-size:10px; opacity:0.55;">관리자 시스템</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#section-account" class="active" onclick="scrollTo('section-account', this)">
+        <i class="fa fa-users"></i>
+        <span>계정 일괄 등록</span>
+      </a>
+      <a href="#section-video" onclick="scrollTo('section-video', this)">
+        <i class="fa fa-film"></i>
+        <span>영상 업로드</span>
+      </a>
+      <a href="#section-list" onclick="scrollTo('section-list', this)">
+        <i class="fa fa-list-alt"></i>
+        <span>계정 목록 조회</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      Copyright ⓒ 2021 KICE
+    </div>
+  </aside>
+
+    <!-- ===== 메인 ===== -->
+    <div class="main-content">
+
+        <!-- 상단 헤더 -->
+        <div class="topbar">
+        <div class="topbar-title">
+            <i class="fa fa-cog" style="color:#155bd5; margin-right:8px;"></i>
+            관리자 대시보드
+        </div>
+        <div class="topbar-user">
+            <i class="fa fa-user-circle"></i>
+            <span>admin</span>
+            <button class="logout-btn" onclick="alert('로그아웃 처리')">
+            <i class="fa fa-sign-out"></i> 로그아웃
+            </button>
+        </div>
+        </div>
+
+        <div class="loading-overlay" id="loadingOverlay">
+            <img src="{% static 'common/assets/images/loading.gif' %}" alt="loading" style="width:80px; height:80px;">
+            <div class="loading-text">계정 등록 처리 중...</div>
+        </div>
+
+        <!-- 본문 -->
+        <div class="page-body">
+            <form id="manageForm">
+                {% csrf_token %}
+                <!-- ======================================================
+                    SECTION 1 : 계정 일괄 등록 (엑셀 업로드)
+                ====================================================== -->
+                <div id="section-account" class="admin-card">
+                    <div class="section-title">
+                        <i class="fa fa-users"></i>
+                        계정 일괄 등록 &nbsp;<small style="font-size:12px; font-weight:400; color:#888;">Excel 파일 업로드</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-7">
+                            <div class="upload-box" id="excelDropZone"
+                                ondragover="onDragOver(event,'excelDropZone')"
+                                ondragleave="onDragLeave('excelDropZone')"
+                                ondrop="onDrop(event,'excelDropZone','excelInput','excelChosen')">
+                                <input type="file" id="excelInput" accept=".xls,.xlsx"
+                                    onchange="onFileChosen(this,'excelChosen')">
+                                <i class="fa fa-file-excel-o"></i>
+                                <div class="upload-label">엑셀 파일을 여기에 끌어다 놓거나 클릭하여 선택</div>
+                                <div class="upload-hint">지원 형식: <span>.xls, .xlsx</span></div>
+                            </div>
+                        
+                            <div class="file-chosen" id="excelChosen">
+                                <i class="fa fa-check-circle"></i>
+                                <span id="excelChosenName"></span>
+                            </div>
+
+                            <div class="upload-progress" id="excelProgress">
+                                <div class="progress">
+                                    <div class="progress-bar" id="excelBar"></div>
+                                </div>
+                                <div class="progress-label" id="excelProgressLabel">업로드 중...</div>
+                            </div>
+
+                            <div class="btn-row">
+                                <button type="button" class="btn-primary-grad" onclick="doUpload('excel')">
+                                    <i class="fa fa-upload"></i> 업로드 및 등록
+                                </button>
+                                <a href="#" class="btn-outline" onclick="downloadTemplate(); return false;">
+                                    <i class="fa fa-download"></i> 양식 다운로드
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-md-5">
+                            <div style="background:#f7faff; border-radius:8px; padding:18px 20px; border:1px solid #dde6f8; font-size:13px; color:#444; line-height:1.9;">
+                                <p style="font-weight:700; color:#155bd5; margin-bottom:10px;">
+                                    <i class="fa fa-info-circle"></i>&nbsp; 업로드 안내
+                                </p>
+                                <ul style="list-style:disc; padding-left:18px; margin:0; color:#555;">
+                                    <li>엑셀 파일에는 <b>아이디, 비밀번호, 이름, 구분(책임자/감독교사), 학교명</b> 열이 포함되어야 합니다.</li>
+                                    <li>첫 번째 행은 <b>헤더 행</b>으로 처리되어 등록에서 제외됩니다.</li>
+                                    <li>이미 존재하는 아이디는 <b>자동으로 건너뜁니다.</b></li>
+                                    <li>최대 <b>1,000건</b>까지 일괄 등록 가능합니다.</li>
+                                    <li>등록 양식이 필요하시면 <b>양식 다운로드</b>를 이용해 주세요.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div><!-- /row -->
+                </div><!-- /admin-card -->
+
+
+                <!-- ======================================================
+                    SECTION 2 : 영상 업로드
+                ====================================================== -->
+                <div id="section-video" class="admin-card">
+                    <div class="section-title">
+                        <i class="fa fa-film"></i>영상 업로드 &nbsp;<small style="font-size:12px; font-weight:400; color:#888;">MP4 · AVI 파일 등록</small>
+                    </div>
+
+                    <!-- 학교 책임자 탭 -->
+                    <div class="video-tab-content active" id="tab-resp">
+                        <div class="row">
+                            <div class="col-md-5" style="margin-bottom:16px;">
+                                <label style="font-size:13px; font-weight:600; color:#444; margin-bottom:8px; display:block;">권한 선택</label>
+                                <select class="form-control" id="authType" style="font-size:13px; height:40px; border-radius:7px;">
+                                    <option value="">-- 권한 --</option>
+                                    {% for item in auth %}
+                                    <option value="{{ item.code }}">{{ item.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-5" style="margin-bottom:16px;">
+                                <label style="font-size:13px; font-weight:600; color:#444; margin-bottom:8px; display:block;">
+                                    프로그램 선택
+                                </label>
+                                <select class="form-control" id="program" style="font-size:13px; height:40px; border-radius:7px;">
+                                    <option value="">-- 프로그램 --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="upload-box" id="videoRespDropZone"
+                            ondragover="onDragOver(event,'videoRespDropZone')"
+                            ondragleave="onDragLeave('videoRespDropZone')"
+                            ondrop="onDrop(event,'videoRespDropZone','videoRespInput','videoRespChosen')">
+                            <input type="file" id="videoRespInput" accept=".mp4,.avi"
+                                onchange="onFileChosen(this,'videoRespChosen')">
+                            <i class="fa fa-video-camera"></i>
+                            <div class="upload-label">영상 파일을 끌어다 놓거나 클릭하여 선택</div>
+                            <div class="upload-hint"> 지원 형식: <span>.mp4</span>&nbsp;<span>.avi</span>&nbsp;·&nbsp; 최대 <span>2 GB</span></div>
+                        </div>
+
+                        <div class="file-chosen" id="videoRespChosen">
+                            <i class="fa fa-check-circle"></i>
+                            <span id="videoRespChosenName"></span>
+                        </div>
+
+                        <div class="upload-progress" id="videoRespProgress">
+                            <div class="progress">
+                                <div class="progress-bar" id="videoRespBar"></div>
+                            </div>
+                            <div class="progress-label" id="videoRespProgressLabel">업로드 중...</div>
+                        </div>
+                        <div class="btn-row">
+                            <button type="button" class="btn-primary-grad" onclick="doUpload('videoResp')">
+                                <i class="fa fa-upload"></i> 영상 업로드
+                            </button>
+                        </div>
+                    </div><!-- /tab-resp -->
+                </div><!-- /admin-card -->
+
+                <!-- ======================================================
+                    SECTION 3 : 계정 목록 조회
+                ====================================================== -->
+                <div id="section-list" class="admin-card">
+                    <div class="section-title">
+                        <i class="fa fa-list-alt"></i>계정 목록 조회
+                    </div>
+
+                    <div class="table-toolbar">
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <select class="form-control" id="filterRole" style="font-size:13px; height:36px; width:130px; border-radius:6px;"
+                                    onchange="filterTable()">
+                                <option value="">전체 구분</option>
+                                <option value="책임자">학교 책임자</option>
+                                <option value="감독교사">감독 교사</option>
+                            </select>
+                            <select class="form-control" id="filterStatus" style="font-size:13px; height:36px; width:110px; border-radius:6px;"
+                                    onchange="filterTable()">
+                                <option value="">전체 상태</option>
+                                <option value="활성">활성</option>
+                                <option value="비활성">비활성</option>
+                            </select>
+                        </div>
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="아이디 · 이름 · 학교 검색"
+                                oninput="filterTable()">
+                            <button><i class="fa fa-search"></i></button>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table class="tbl" id="accountTable">
+                            <thead>
+                            <tr>
+                                <th style="width:44px; text-align:center;">
+                                <input type="checkbox" id="checkAll" onchange="toggleAll(this)">
+                                </th>
+                                <th>아이디</th>
+                                <th>이름</th>
+                                <th>학교명</th>
+                                <th>구분</th>
+                                <th>등록일</th>
+                                <th>상태</th>
+                                <th style="width:110px;">관리</th>
+                            </tr>
+                            </thead>
+                            <tbody id="accountTbody">
+                                <!-- 샘플 데이터 -->
+                                <tr>
+                                    <td style="text-align:center;"><input type="checkbox" class="row-check"></td>
+                                    <td>sample_user01</td>
+                                    <td>홍길동</td>
+                                    <td>서울중학교</td>
+                                    <td><span class="badge-role resp">책임자</span></td>
+                                    <td>2022-03-15</td>
+                                    <td><span class="badge-status active">활성</span></td>
+                                    <td><div class="tbl-action">
+                                    <button class="tbl-btn edit">수정</button>
+                                    <button class="tbl-btn del">삭제</button>
+                                    </div></td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align:center;"><input type="checkbox" class="row-check"></td>
+                                    <td>sample_user02</td>
+                                    <td>김철수</td>
+                                    <td>서울중학교</td>
+                                    <td><span class="badge-role teacher">감독교사</span></td>
+                                    <td>2022-03-15</td>
+                                    <td><span class="badge-status active">활성</span></td>
+                                    <td><div class="tbl-action">
+                                    <button class="tbl-btn edit">수정</button>
+                                    <button class="tbl-btn del">삭제</button>
+                                    </div></td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align:center;"><input type="checkbox" class="row-check"></td>
+                                    <td>sample_user03</td>
+                                    <td>이영희</td>
+                                    <td>부산고등학교</td>
+                                    <td><span class="badge-role resp">책임자</span></td>
+                                    <td>2022-03-16</td>
+                                    <td><span class="badge-status inactive">비활성</span></td>
+                                    <td><div class="tbl-action">
+                                    <button class="tbl-btn edit">수정</button>
+                                    <button class="tbl-btn del">삭제</button>
+                                    </div></td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align:center;"><input type="checkbox" class="row-check"></td>
+                                    <td>sample_user04</td>
+                                    <td>박민준</td>
+                                    <td>인천중학교</td>
+                                    <td><span class="badge-role teacher">감독교사</span></td>
+                                    <td>2022-03-17</td>
+                                    <td><span class="badge-status active">활성</span></td>
+                                    <td><div class="tbl-action">
+                                    <button class="tbl-btn edit">수정</button>
+                                    <button class="tbl-btn del">삭제</button>
+                                    </div></td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align:center;"><input type="checkbox" class="row-check"></td>
+                                    <td>sample_user05</td>
+                                    <td>최수연</td>
+                                    <td>대전고등학교</td>
+                                    <td><span class="badge-role resp">책임자</span></td>
+                                    <td>2022-03-18</td>
+                                    <td><span class="badge-status active">활성</span></td>
+                                    <td><div class="tbl-action">
+                                    <button class="tbl-btn edit">수정</button>
+                                    <button class="tbl-btn del">삭제</button>
+                                    </div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div><!-- /overflow -->
+
+                    <div class="table-footer">
+                        <span id="tableCount">총 <b>5</b>개 계정</span>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <button class="btn-outline" style="padding:6px 14px; font-size:12px;"
+                                    type="button" onclick="showToast('선택 계정을 비활성 처리했습니다.','success')">
+                                <i class="fa fa-ban"></i> 선택 비활성
+                            </button>
+                            <button class="btn-outline" style="padding:6px 14px; font-size:12px; border-color:#e6185e; color:#e6185e;"
+                                    type="button" onclick="showToast('선택 계정을 삭제했습니다.','error')">
+                                <i class="fa fa-trash"></i> 선택 삭제
+                            </button>
+                            <div class="pagination">
+                                <div class="page-btn active">1</div>
+                                <div class="page-btn">2</div>
+                                <div class="page-btn">3</div>
+                                <div class="page-btn"><i class="fa fa-chevron-right"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /admin-card -->
+            </form>
+        </div><!-- /page-body -->
+    </div><!-- /main-content -->
+</div><!-- /admin-wrapper -->
+
+<!-- ===== 토스트 ===== -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+$(function() {
+    // ajax 요청 시 CSRF 토큰 자동 포함
+    $.ajaxSetup({ headers: { 'X-CSRFToken': Cookies.get('csrftoken') } });
+
+    $("#authType").on("change", function() {
+        var authCode = $(this).val();
+        $("#program").empty().append('<option value="">-- 프로그램 --</option>');
+        $.ajax({
+            url: "{% url 'mng:get_program_list' %}",
+            method: "GET",
+            data: { "video_role" : authCode },
+            success: function(data) {
+                data.programs.forEach(function(pInfo) {
+                    $("#program").append('<option value="' + pInfo.id + '">' + pInfo.order + '. ' + pInfo.title + '</option>');
+                });
+            },
+            error: function() {
+                showToast('프로그램을 목록을 불러오는 데 실패했습니다.', 'error');
+            }
+        });
+    });
+});
+
+/* ── 사이드바 스크롤 ── */
+function scrollTo(id, el) {
+  event.preventDefault();
+  document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+  const target = document.getElementById(id);
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── 드래그 앤 드롭 ── */
+function onDragOver(e, zoneId) {
+  e.preventDefault();
+  document.getElementById(zoneId).classList.add('drag-over');
+}
+function onDragLeave(zoneId) {
+  document.getElementById(zoneId).classList.remove('drag-over');
+}
+function onDrop(e, zoneId, inputId, chosenId) {
+  e.preventDefault();
+  document.getElementById(zoneId).classList.remove('drag-over');
+  const dt = e.dataTransfer;
+  if (dt.files && dt.files[0]) {
+    const input = document.getElementById(inputId);
+    // DataTransfer 방식으로 파일 세팅
+    const dti = new DataTransfer();
+    dti.items.add(dt.files[0]);
+    input.files = dti.files;
+    onFileChosen(input, chosenId);
+  }
+}
+
+/* ── 파일 선택 표시 ── */
+function onFileChosen(input, chosenId) {
+  const wrap = document.getElementById(chosenId);
+  if (input.files && input.files[0]) {
+    // 확장자 체크
+    const file = input.files[0];
+    const ext = file.name.split('.').pop().toLowerCase();
+    const isExcel = chosenId === 'excelChosen';
+    const allowedExts = isExcel ? ['xls', 'xlsx'] : ['mp4', 'avi'];
+    if (!allowedExts.includes(ext)) {
+      showToast(isExcel ? '엑셀 파일(.xls, .xlsx)만 업로드 가능합니다.' : '영상 파일(.mp4, .avi)만 업로드 가능합니다.', 'error');
+      input.value = '';  // 파일 초기화
+      wrap.style.display = 'none';
+      return;
+    }
+
+    const name = input.files[0].name;
+    const size = (input.files[0].size / 1024 / 1024).toFixed(1);
+    document.getElementById(chosenId + 'Name').textContent = name + '  (' + size + ' MB)';
+    wrap.style.display = 'flex';
+  }
+}
+
+
+function doUpload(type) {
+    var configs = {
+        excel: {
+        input: 'excelInput',
+        progress: 'excelProgress',
+        bar: 'excelBar',
+        label: 'excelProgressLabel',
+        msg: '계정 일괄 등록이 완료되었습니다.'
+        },
+        videoResp: {
+        input: 'videoRespInput',
+        progress: 'videoRespProgress',
+        bar: 'videoRespBar',
+        label: 'videoRespProgressLabel',
+        msg: '학교 책임자 영상 업로드가 완료되었습니다.'
+        }
+    };
+
+    var c = configs[type];
+    var $fileInput = $('#' + c.input);
+    if (!$fileInput[0].files || !$fileInput[0].files[0]) {
+        showToast('파일을 먼저 선택해 주세요.', 'error');
+        return;
+    }
+
+    var $prog = $('#' + c.progress);
+    var $bar = $('#' + c.bar);
+    var $lbl = $('#' + c.label);
+    if(type === 'excel'){
+        var file = $fileInput[0].files[0];
+        var formData = new FormData();
+        formData.append('file', file);
+
+        $.ajax({
+            url: "{% url 'mng:regist_accounts' %}",
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhr: function() {
+            var xhr = new window.XMLHttpRequest();
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                var pct = Math.round(e.loaded / e.total * 100);
+                $bar.css('width', pct + '%');
+                $lbl.text('업로드 중... ' + pct + '%');
+                }
+            });
+            return xhr;
+            },
+            beforeSend: function() {
+            $prog.show();
+            $bar.css('width', '0%');
+            $lbl.text('업로드 준비 중...');
+            // loadingOverlay css 가 show에 의해 정중앙에 표시됨
+            $('#loadingOverlay').addClass('show');
+            },
+            success: function(resp) {
+            console.log("resp >>>", resp);
+            if(resp.status === 'success') {
+                showToast(c.msg, 'success');
+            }else{
+                showToast('업로드 실패: ' + resp.msg, 'error');
+            }
+            $('#loadingOverlay').removeClass('show');
+            },
+            complete: function() {
+            setTimeout(function() { $prog.hide(); }, 1000);
+            }
+        });
+    }else if(type === 'videoResp'){
+        var file = $fileInput[0].files[0];
+        var formData = new FormData();
+
+        var authType = $("#authType").val();
+        // Select 유효성 검사
+        if(!authType) {
+            showToast('권한을 선택해 주세요.', 'error');
+            return;
+        }
+        var program = $("#program").val();
+        if(!program) {
+            showToast('영상 구분을 선택해 주세요.', 'error');
+            return;
+        }
+
+        formData.append('file', file);
+        formData.append('auth_type', $("#authType").val());
+        formData.append('program', $("#program").val());
+        $.ajax({
+            url: "{% url 'mng:upload_video' %}",
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhr: function() {
+            var xhr = new window.XMLHttpRequest();
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                var pct = Math.round(e.loaded / e.total * 100);
+                $bar.css('width', pct + '%');
+                $lbl.text('업로드 중... ' + pct + '%');
+                }
+            });
+            return xhr;
+            },
+            beforeSend: function() {
+            $prog.show();
+            $bar.css('width', '0%');
+            $lbl.text('업로드 준비 중...');
+            },
+            success: function(resp) {
+            console.log("resp >>>", resp);
+            if(resp.status === 'success') {
+                showToast(c.msg, 'success');
+            }else{
+                showToast('업로드 실패: ' + resp.msg, 'error');
+            }
+            },
+            complete: function() {
+            setTimeout(function() { $prog.hide(); }, 1000);
+            }
+        });
+    }
+}
+
+/* ── 양식 다운로드 ── */
+function downloadTemplate() {
+  showToast('계정 등록 양식(template.xlsx) 다운로드를 시작합니다.', 'info');
+}
+
+/* ── 테이블 검색/필터 ── */
+function filterTable() {
+  const keyword = document.getElementById('searchInput').value.toLowerCase();
+  const role    = document.getElementById('filterRole').value;
+  const status  = document.getElementById('filterStatus').value;
+
+  const rows = document.querySelectorAll('#accountTbody tr');
+  let visible = 0;
+  rows.forEach(row => {
+    const text   = row.textContent.toLowerCase();
+    const roleEl = row.querySelector('.badge-role');
+    const statEl = row.querySelector('.badge-status');
+    const roleMatch   = !role   || (roleEl && roleEl.textContent.includes(role));
+    const statusMatch = !status || (statEl && statEl.textContent.includes(status));
+    const keyMatch    = !keyword || text.includes(keyword);
+    const show = roleMatch && statusMatch && keyMatch;
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('tableCount').innerHTML = '총 <b>' + visible + '</b>개 계정';
+}
+
+/* ── 전체 선택 ── */
+function toggleAll(master) {
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = master.checked);
+}
+
+/* ── 토스트 알림 ── */
+function showToast(msg, type) {
+  const wrap = document.getElementById('toastWrap');
+  const icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle' };
+  const el = document.createElement('div');
+  el.className = 'toast-msg ' + (type || 'info');
+  el.innerHTML = '<i class="fa ' + (icons[type] || icons.info) + '"></i><span>' + msg + '</span>';
+  wrap.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = 'opacity 0.4s';
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 400);
+  }, 3000);
+}
+
+</script>
+</body>
+</html>

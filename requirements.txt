@@ -1,0 +1,14 @@
+asgiref==3.11.1
+Django==6.0.2
+et_xmlfile==2.0.0
+ffmpeg-python==0.2.0
+future==1.0.0
+mysqlclient==2.2.8
+numpy==2.4.2
+openpyxl==3.1.5
+pandas==3.0.1
+python-dateutil==2.9.0.post0
+six==1.17.0
+sqlparse==0.5.5
+xlrd==2.0.2
+xlsxwriter==3.2.9
