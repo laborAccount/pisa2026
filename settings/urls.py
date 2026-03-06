@@ -21,6 +21,7 @@ from mng import urls as mng_urls
 from common.views import *
 urlpatterns = [
     path('', login , name='login'),
+    path('do-login/', do_login , name='do_login'),
     path('video/', include(video_urls)),
     path('mng/', include(mng_urls))
 ]

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
+<html lang="en">
+
+<head>
+  <!--====== Required meta tags ======-->
+  <meta charset="utf-8" />
+  <meta http-equiv="x-ua-compatible" content="ie=edge" />
+  <meta name="description" content="" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+  <!--====== Title ======-->
+  <title>PISA 2022 표집학교 책임자 및 감독 교사 온라인 연수</title>
+
+
+  <!--====== Bootstrap css ======-->
+  <link rel="stylesheet" type="text/css" href="{% static 'common/vendor/bootstrap/css/bootstrap.min.css' %}">
+
+  <!--====== Line Icons css ======-->
+  <link rel="stylesheet" href="{% static 'common/css/lineicons.css' %}" />
+
+  <!--====== gLightBox css ======-->
+  <link rel="stylesheet" href="{% static 'common/assets/css/glightbox.min.css' %}" />
+
+  <link rel="stylesheet" href="{% static 'common/style.css' %}"/>
+</head>
+
+<body>
+
+
+  <!--====== NAVBAR NINE PART START ======-->
+
+  <section class="navbar-area navbar-nine">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-12">
+          <nav class="navbar navbar-expand-lg">
+            <a class="navbar-brand" href="#none" style="color:#fff; font-weight:600">
+              PISA 2022 표집학교 책임자 및 감독 교사 온라인 연수
+            </a>
+          </nav>
+          <!-- navbar -->
+        </div>
+      </div>
+      <!-- row -->
+    </div>
+    <!-- container -->
+  </section>
+
+  <!--====== NAVBAR NINE PART ENDS ======-->
+
+
+<section class="video-area video-one">
+
+    <div class="container">
+      <div class="row">
+	    <div class="col-lg-12 col-md-12 col-12" style="text-align:center;">
+			본 온라인 연수 동영상을 무단으로 도용, 재가공, 배포하는 행위를 금합니다.
+			협의 없이 무단으로 사용할 경우 저작권법 위반에 해당합니다.
+		</div>
+        <!-- 학교 책임자 -->
+        {% if user.auth_type == 'AT01' or user.auth_type == 'AT02' or user.auth_type == 'AT03' %}
+        <div class="col-lg-12 col-md-12 col-12">
+            <div class="pricing-style-fourteen">
+            <!--
+            <div class="necessary">필수</div>
+            -->
+            <div class="table-head">
+              <h6 class="title">학교 책임자</h6>
+                <p>
+                  <img src="{% static 'common/assets/images/top1.png' %}">
+                </p>
+            </div>
+
+            <div class="table-content">
+              <ul class="table-list">
+                {% for program in programs %}
+                    {% if program.video_role == 'AT03' %}
+                    <li>
+                    <a class="video-popup glightbox" href="https://www.youtube.com/watch?v=NJbXptdalP0">
+                        <img src="{% static 'common/assets/images/step'|concat:program.order|concat:'.png' %}" style="width: 90px;margin-top: 2px;margin-right: 10px;">
+                        <div>{{ program.title }}<span>영상보기</span></div>
+                    </a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- 감독 교사 -->
+        {% if user.auth_type == 'AT01' or user.auth_type == 'AT02' or user.auth_type == 'AT04' %}
+        <div class="col-lg-12 col-md-12 col-12">
+          <div class="pricing-style-fourteen">
+            <div class="table-head">
+              <h6 class="title">감독 교사</h6>
+                <p>
+                  <img src="{% static 'common/assets/images/top2.png' %}">
+                </p>
+            </div>
+
+            <div class="table-content">
+              <ul class="table-list">
+                {% for program in programs %}
+                    {% if program.video_role == 'AT04' %}
+                    <li>
+                    <a class="video-popup glightbox" href="https://www.youtube.com/watch?v=NJbXptdalP0">
+                        <img src="{% static 'common/assets/images/step'|concat:program.order|concat:'.png' %}" style="width: 90px;margin-top: 2px;margin-right: 10px;">
+                        <div>{{ program.title }}<span>영상보기</span></div>
+                    </a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- ICT담당자 -->
+        {% if user.auth_type == 'AT01' or user.auth_type == 'AT02' or user.auth_type == 'AT05' %}
+        <div class="col-lg-12 col-md-12 col-12">
+          <div class="pricing-style-fourteen">
+            <div class="table-head">
+              <h6 class="title">ICT담당자</h6>
+                <p>
+                  <img src="{% static 'common/assets/images/top2.png' %}">
+                </p>
+            </div>
+
+            <div class="table-content">
+              <ul class="table-list">
+                {% for program in programs %}
+                    {% if program.video_role == 'AT05' %}
+                    <li>
+                    <a class="video-popup glightbox" href="https://www.youtube.com/watch?v=NJbXptdalP0">
+                        <img src="{% static 'common/assets/images/step'|concat:program.order|concat:'.png' %}" style="width: 90px;margin-top: 2px;margin-right: 10px;">
+                        <div>{{ program.title }}<span>영상보기</span></div>
+                    </a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+
+          </div>
+        </div>
+        {% endif %}
+        
+            <div class="col-lg-12 col-md-12 col-12">
+                <div class="faq-wrap">
+
+                    <div class="accordion">
+                        <input id="accordion-1" type="checkbox" name="faq-check">
+                        <label for="accordion-1">
+                            <p><img src="{% static 'common/assets/images/faq.png' %}" style="width: 40px; margin-right: 20px;">FAQ - 자주 묻는 질문</p>
+                        </label>
+                        <div class="accordion-content">
+                            <div class="content-answer">
+                                <p><img src="{% static 'common/assets/images/ico_q.svg' %}" style="width: 40px; margin-right: 5px;">질문</p>
+                                <p><img src="{% static 'common/assets/images/ico_a.svg' %}" style="width: 45px;">답변</p>
+                                <br />
+                                <p><img src="{% static 'common/assets/images/ico_q.svg' %}" style="width: 40px; margin-right: 5px;">질문</p>
+                                <p><img src="{% static 'common/assets/images/ico_a.svg' %}" style="width: 45px;">답변</p>
+                                <br />
+                                <p><img src="{% static 'common/assets/images/ico_q.svg' %}" style="width: 40px; margin-right: 5px;">질문</p>
+                                <p><img src="{% static 'common/assets/images/ico_a.svg' %}" style="width: 45px;">답변</p>
+                            </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-12 col-md-12 col-12">
+                <div class="notice">
+                    <p>검사에 관한 문의 사항은 아래로 연락하시기 바랍니다.</p>
+                    <ul>
+                      <li>주소: 27873 충청북도 진천군 덕산읍 교학로 8 한국교육과정평가원 국제학업성취도평가연구실 311호</li>
+                      <li>전자우편: pisa@kice.re.kr</li>
+                      <li>FAX: 043-931-0813</li>
+                      <li>전화: 043-931-0654, 0655</li>
+                    </ul>
+                </div>
+            </div>
+      </div>
+    </div>
+
+</section>
+
+
+
+
+
+  <a href="#" class="scroll-top btn-hover">
+    <i class="lni lni-chevron-up"></i>
+  </a>
+
+
+  <div id="footer">
+        <div class="footer_wrap">
+            <div class="footer_con">
+                <ul class="footer_txt" style="padding-bottom:20px;">
+                    <li class="footer_link">
+                        <p>한국교육과정평가원</p>
+                    </li>
+                    <li class="copyright">
+                        Copyright ⓒ 2021 KICE. All Rights Reserved.
+                    </li>
+                </ul>
+            </div>
+            <!--footer_con END-->
+        </div>
+        <!--footer_wrap END-->
+  </div>
+
+
+  <!--====== js ======-->
+  <script src="{% static 'common/assets/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'common/assets/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'common/assets/js/main.js' %}"></script>
+
+  <script>
+    //========= glightbox
+    GLightbox({
+      'href': 'https://www.youtube.com/watch?v=r44RKWyfcFw&fbclid=IwAR21beSJORalzmzokxDRcGfkZA1AtRTE__l5N4r09HcGS5Y6vOluyouM9EM',
+      'type': 'video',
+      'source': 'youtube', //vimeo, youtube or local
+      'width': 900,
+      'autoplayVideos': true,
+    });
+  </script>
+</body>
+
+</html>

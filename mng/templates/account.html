@@ -8,10 +8,15 @@
   <script src="{% static 'common/vendor/jquery/jquery-3.2.1.min.js' %}"></script>
   <script src="{% static 'common/vendor/cookies/cookies.js' %}"></script>
   <script src="{% static 'common/vendor/bootstrap/js/bootstrap.min.js' %}"></script>
+  <script src="{% static 'common/vendor/datatables/js/datatables1.13.6.js' %}"></script>
+  
   <link rel="stylesheet" type="text/css" href="{% static 'common/vendor/bootstrap/css/bootstrap.min.css' %}">
   <link rel="stylesheet" type="text/css" href="{% static 'common/fonts/font-awesome-4.7.0/css/font-awesome.min.css' %}">
   <link rel="stylesheet" type="text/css" href="{% static 'common/css/util.css' %}">
   <link rel="stylesheet" type="text/css" href="{% static 'common/css/main.css' %}">
+  <link rel="stylesheet" type="text/css" href="{% static 'common/vendor/datatables/datatable1.13.6.css' %}">
+
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
   <style>
     /* ── 레이아웃 ── */
     body, html { height: 100%; margin: 0; font-family: 'Poppins-Regular', sans-serif; background: #f2f2f2; }
@@ -263,6 +268,49 @@
       .sidebar-nav a i { width: auto; font-size: 18px; }
       .main-content { margin-left: 64px; }
     }
+
+    /* DataTables 페이지네이션 커스텀 */
+    .dataTables_wrapper .dataTables_paginate {
+        margin-top: 14px;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 5px !important;
+        border: 1.5px solid #ddd !important;
+        background: #fff !important;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        color: #555 !important;
+        margin: 0 2px;
+        box-shadow: none !important;
+        transition: all 0.2s;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        border-color: #155bd5 !important;
+        background: #155bd5 !important;
+        color: #fff !important;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+        border-color: #155bd5 !important;
+        background: #155bd5 !important;
+        color: #fff !important;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+        color: #ccc !important;
+        border-color: #eee !important;
+        background: #fafafa !important;
+        cursor: default;
+    }
+
+
+
   </style>
 </head>
 <body>
@@ -455,22 +503,20 @@
 
                     <div class="table-toolbar">
                         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                            <select class="form-control" id="filterRole" style="font-size:13px; height:36px; width:130px; border-radius:6px;"
-                                    onchange="filterTable()">
-                                <option value="">전체 구분</option>
-                                <option value="책임자">학교 책임자</option>
-                                <option value="감독교사">감독 교사</option>
+                            <select class="form-control" id="filterAuth" style="font-size:13px; height:36px; width:130px; border-radius:6px;">
+                                <option value="">권한 구분</option>
+                                {% for item in auth2 %}
+                                    <option value="{{ item.code }}">{{ item.name }}</option>
+                                {% endfor %}
                             </select>
-                            <select class="form-control" id="filterStatus" style="font-size:13px; height:36px; width:110px; border-radius:6px;"
-                                    onchange="filterTable()">
-                                <option value="">전체 상태</option>
-                                <option value="활성">활성</option>
-                                <option value="비활성">비활성</option>
+                            <select class="form-control" id="filterUserStatus" style="font-size:13px; height:36px; width:110px; border-radius:6px;">
+                                <option value="">회원 상태</option>
+                                <option value="0">탈퇴</option>
+                                <option value="1">가입</option>
                             </select>
                         </div>
                         <div class="search-box">
-                            <input type="text" id="searchInput" placeholder="아이디 · 이름 · 학교 검색"
-                                oninput="filterTable()">
+                            <input type="text" id="searchInput" placeholder="아이디 · 이름 · 학교 검색">
                             <button><i class="fa fa-search"></i></button>
                         </div>
                     </div>
@@ -480,105 +526,38 @@
                             <thead>
                             <tr>
                                 <th style="width:44px; text-align:center;">
-                                <input type="checkbox" id="checkAll" onchange="toggleAll(this)">
+                                    <input type="checkbox" id="checkAll" onchange="toggleAll(this)">
                                 </th>
                                 <th>아이디</th>
                                 <th>이름</th>
-                                <th>학교명</th>
-                                <th>구분</th>
+                                <th>조직/부서명</th>
+                                <th>권한구분</th>
+
+                                <th>역할구분</th>
                                 <th>등록일</th>
                                 <th>상태</th>
-                                <th style="width:110px;">관리</th>
                             </tr>
                             </thead>
                             <tbody id="accountTbody">
-                                <!-- 샘플 데이터 -->
-                                <tr>
-                                    <td style="text-align:center;"><input type="checkbox" class="row-check"></td>
-                                    <td>sample_user01</td>
-                                    <td>홍길동</td>
-                                    <td>서울중학교</td>
-                                    <td><span class="badge-role resp">책임자</span></td>
-                                    <td>2022-03-15</td>
-                                    <td><span class="badge-status active">활성</span></td>
-                                    <td><div class="tbl-action">
-                                    <button class="tbl-btn edit">수정</button>
-                                    <button class="tbl-btn del">삭제</button>
-                                    </div></td>
-                                </tr>
-                                <tr>
-                                    <td style="text-align:center;"><input type="checkbox" class="row-check"></td>
-                                    <td>sample_user02</td>
-                                    <td>김철수</td>
-                                    <td>서울중학교</td>
-                                    <td><span class="badge-role teacher">감독교사</span></td>
-                                    <td>2022-03-15</td>
-                                    <td><span class="badge-status active">활성</span></td>
-                                    <td><div class="tbl-action">
-                                    <button class="tbl-btn edit">수정</button>
-                                    <button class="tbl-btn del">삭제</button>
-                                    </div></td>
-                                </tr>
-                                <tr>
-                                    <td style="text-align:center;"><input type="checkbox" class="row-check"></td>
-                                    <td>sample_user03</td>
-                                    <td>이영희</td>
-                                    <td>부산고등학교</td>
-                                    <td><span class="badge-role resp">책임자</span></td>
-                                    <td>2022-03-16</td>
-                                    <td><span class="badge-status inactive">비활성</span></td>
-                                    <td><div class="tbl-action">
-                                    <button class="tbl-btn edit">수정</button>
-                                    <button class="tbl-btn del">삭제</button>
-                                    </div></td>
-                                </tr>
-                                <tr>
-                                    <td style="text-align:center;"><input type="checkbox" class="row-check"></td>
-                                    <td>sample_user04</td>
-                                    <td>박민준</td>
-                                    <td>인천중학교</td>
-                                    <td><span class="badge-role teacher">감독교사</span></td>
-                                    <td>2022-03-17</td>
-                                    <td><span class="badge-status active">활성</span></td>
-                                    <td><div class="tbl-action">
-                                    <button class="tbl-btn edit">수정</button>
-                                    <button class="tbl-btn del">삭제</button>
-                                    </div></td>
-                                </tr>
-                                <tr>
-                                    <td style="text-align:center;"><input type="checkbox" class="row-check"></td>
-                                    <td>sample_user05</td>
-                                    <td>최수연</td>
-                                    <td>대전고등학교</td>
-                                    <td><span class="badge-role resp">책임자</span></td>
-                                    <td>2022-03-18</td>
-                                    <td><span class="badge-status active">활성</span></td>
-                                    <td><div class="tbl-action">
-                                    <button class="tbl-btn edit">수정</button>
-                                    <button class="tbl-btn del">삭제</button>
-                                    </div></td>
-                                </tr>
+                                
                             </tbody>
                         </table>
                     </div><!-- /overflow -->
 
-                    <div class="table-footer">
-                        <span id="tableCount">총 <b>5</b>개 계정</span>
+                    <div class="table-footer" style="justify-content: flex-end;">
                         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                            <button class="btn-outline" style="padding:6px 14px; font-size:12px;"
-                                    type="button" onclick="showToast('선택 계정을 비활성 처리했습니다.','success')">
-                                <i class="fa fa-ban"></i> 선택 비활성
-                            </button>
-                            <button class="btn-outline" style="padding:6px 14px; font-size:12px; border-color:#e6185e; color:#e6185e;"
+                            <button id="deleteSelected" class="btn-outline" style="padding:6px 14px; font-size:12px; border-color:#e6185e; color:#e6185e;"
                                     type="button" onclick="showToast('선택 계정을 삭제했습니다.','error')">
                                 <i class="fa fa-trash"></i> 선택 삭제
                             </button>
+                            <!--
                             <div class="pagination">
                                 <div class="page-btn active">1</div>
                                 <div class="page-btn">2</div>
                                 <div class="page-btn">3</div>
                                 <div class="page-btn"><i class="fa fa-chevron-right"></i></div>
                             </div>
+                            -->
                         </div>
                     </div>
 
@@ -595,6 +574,105 @@
 $(function() {
     // ajax 요청 시 CSRF 토큰 자동 포함
     $.ajaxSetup({ headers: { 'X-CSRFToken': Cookies.get('csrftoken') } });
+    // form 태그 제출 방지
+    $('#manageForm').on('submit', function(e) { e.preventDefault(); });
+
+    var accountDt = $('#accountTable').dataTable({
+        "pageLength": 10,
+        "paging": true,
+        "info": false,
+        "paging": true,
+        "lengthChange": false,
+        "searching": false,
+        "ajax": {
+            url: "{% url 'mng:get_account_list' %}",
+            type: "GET",
+            data: function(d) {
+                d.auth_type = $("#filterAuth").val();
+                d.is_active = $("#filterUserStatus").val();
+                d.search = $("#searchInput").val();
+            },
+            dataFilter: function(jsonData) {
+                let result = JSON.parse(jsonData);
+                console.log("dataFilter result:", result);
+                let dataInfo = {};
+                if (result["status"]=="success") {
+                    dataInfo['data'] = result["data"]
+                    dataInfo['recordsTotal'] = result["recordsTotal"];
+                    dataInfo['recordsFiltered'] = result["recordsFiltered"];
+                }else {
+                    alert("목록 조회에 실패하였습니다");
+                }
+                return JSON.stringify(dataInfo);
+            }
+        },
+        "columnDefs": [
+            { 
+                "targets": 0,
+                "data": "user_seq",
+                "className": "row-check",
+                "orderable": false,
+                "render": function(data, type, row){
+                    return '<input type="checkbox" class="row-check">';
+                }
+            },
+            { 
+                "targets": 1,
+                "data": "account_id",
+                "orderable": false, 
+            },
+            {
+                "targets": 2,
+                "data": "name",
+                "orderable": false, 
+            },
+            {
+                "targets": 3,
+                "data": "org_name",
+                "orderable": false, 
+            },
+            {
+                "targets": 4,
+                "data": "auth_name",
+                "orderable": false, 
+                "render": function(data, type, row){
+                    let roleClass = data === '책임자' ? 'resp' : 'teacher';
+                    return '<span class="badge-role ' + roleClass + '">' + data + '</span>';
+                }
+            },
+            {
+                "targets": 5,
+                "data": "org_type_nm",
+                "orderable": false, 
+                "render": function(data, type, row){
+                    let roleClass = data === '관리자' ? 'admin' : (data === '책임자' ? 'resp' : 'teacher');
+                    return '<span class="badge-role ' + roleClass + '">' + data + '</span>';
+                }
+            },
+            {
+                "targets": 6,
+                "data": "reg_dt",
+                "orderable": false, 
+                "render" : function(data, type, row){
+                    if (!data) return '-';
+                    return new Date(data).toLocaleDateString('ko-KR');  // "2024. 3. 6."
+                }
+            },
+            {
+                "targets": 7,
+                "data": "is_active",
+                "orderable": false, 
+                "render": function(data, type, row){
+                    let statusClass = data === 1 ? 'active' : 'inactive';
+                    let statusText = data === 1 ? '가입':'탈퇴' ;
+                    return '<span class="badge-status ' + statusClass + '">' + statusText + '</span>';
+                }
+            }
+        ],
+        "zeroRecords": '검색 결과가 없습니다.'
+
+    });
+
 
     $("#authType").on("change", function() {
         var authCode = $(this).val();
@@ -613,6 +691,41 @@ $(function() {
             }
         });
     });
+
+    $("#filterAuth").on("change", function() {
+        accountDt.api().ajax.reload();
+    });
+    $("#filterUserStatus").on("change", function() {
+        accountDt.api().ajax.reload();  
+    });
+    $("#searchInput").on("keypress", function(e) {
+        if (e.which === 13) { // Enter key
+            accountDt.api().ajax.reload();
+        }
+    });
+    $("#deleteSelected").on("click",function(){
+        var selectedRows = [];
+        accountDt.api().rows().every(function(){
+            var node = this.node();
+            if ($(node).find('input.row-check').is(':checked')) {
+                selectedRows.push(this.data().user_seq);
+            }
+            return $(node).find('input.row-check').is(':checked');
+        });
+        console.log("선택된 행 데이터 >>>", selectedRows);
+        $.ajax({
+            url: "{% url 'mng:delete_accounts' %}",
+            method: "POST",
+            data: { "del_list[]" : selectedRows },
+            success: function(data) {
+                accountDt.api().ajax.reload();
+            },
+            error: function() {
+                showToast('프로그램을 목록을 불러오는 데 실패했습니다.', 'error');
+            }
+        });
+    });
+
 });
 
 /* ── 사이드바 스크롤 ── */
@@ -728,13 +841,15 @@ function doUpload(type) {
             $('#loadingOverlay').addClass('show');
             },
             success: function(resp) {
-            console.log("resp >>>", resp);
-            if(resp.status === 'success') {
-                showToast(c.msg, 'success');
-            }else{
-                showToast('업로드 실패: ' + resp.msg, 'error');
-            }
-            $('#loadingOverlay').removeClass('show');
+                if(resp.status === 'success') {
+                    showToast(c.msg, 'success');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                }else{
+                    showToast('업로드 실패: ' + resp.msg, 'error');
+                }
+                $('#loadingOverlay').removeClass('show');
             },
             complete: function() {
             setTimeout(function() { $prog.hide(); }, 1000);
@@ -801,27 +916,6 @@ function downloadTemplate() {
   showToast('계정 등록 양식(template.xlsx) 다운로드를 시작합니다.', 'info');
 }
 
-/* ── 테이블 검색/필터 ── */
-function filterTable() {
-  const keyword = document.getElementById('searchInput').value.toLowerCase();
-  const role    = document.getElementById('filterRole').value;
-  const status  = document.getElementById('filterStatus').value;
-
-  const rows = document.querySelectorAll('#accountTbody tr');
-  let visible = 0;
-  rows.forEach(row => {
-    const text   = row.textContent.toLowerCase();
-    const roleEl = row.querySelector('.badge-role');
-    const statEl = row.querySelector('.badge-status');
-    const roleMatch   = !role   || (roleEl && roleEl.textContent.includes(role));
-    const statusMatch = !status || (statEl && statEl.textContent.includes(status));
-    const keyMatch    = !keyword || text.includes(keyword);
-    const show = roleMatch && statusMatch && keyMatch;
-    row.style.display = show ? '' : 'none';
-    if (show) visible++;
-  });
-  document.getElementById('tableCount').innerHTML = '총 <b>' + visible + '</b>개 계정';
-}
 
 /* ── 전체 선택 ── */
 function toggleAll(master) {

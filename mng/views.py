@@ -5,6 +5,7 @@ from settings import settings
 from user.models import *
 from common.models import *
 from video.models import *
+from common.util import dictfetchone, dictfetchall
 from django.db import transaction, connection
 import os
 import json
@@ -32,6 +33,10 @@ def account(request):
     context = {}
     auth = Code.objects.filter(group_code='001',order__gte=3).order_by('order').values()
     context['auth'] = list(auth)
+    
+    auth2 = Code.objects.filter(group_code='001',order__gte=2).order_by('order').values()
+    context['auth2'] = list(auth2)
+    
     logger.info('context >>> %s', context)
     return render(request, 'account.html', context)
 
@@ -131,6 +136,10 @@ def regist_accounts(request):
                             continue
                         
                         account_pw = account.get('비밀번호')
+                        account_name = account.get('비밀번호')
+                        account_pw = korean_to_english(account_pw)
+                        logger.info("korean_to_english account_pw >>> %s", account_pw)
+                        
                         ko_auth_type = account.get('사용자 유형') # 평가원 담당자(모든권한) / 업무 담당자(학교책임자) / 감독교사 / ICT 담당자
                         ko_role =  account.get('지역/시도') # 교육부 / 시.도교육청 / 한국교육과정평가원 / 지역[서울,부산,..] (표집학교)
                         viewing_day = account.get('시청 요일') # 월,화,수
@@ -192,7 +201,7 @@ def regist_accounts(request):
                         user.set_password(account_pw)
                         user.auth_type = auth_type
                         user.viewing_day = viewing_day_list
-                        user.name = account_pw # 사용자이름이 패스워드(합의)
+                        user.name = account_name # 사용자이름이 패스워드(합의)
                         user.organization = organization
                         bulk_accounts.append(user)
                         
@@ -212,6 +221,51 @@ def regist_accounts(request):
         context['self_path'] = request.path
         return JsonResponse(context)
     
+
+def korean_to_english(text):
+    # 한글 자모 → 영문 키보드 매핑
+    cho = {
+        'ㄱ': 'r', 'ㄲ': 'R', 'ㄴ': 's', 'ㄷ': 'e', 'ㄸ': 'E',
+        'ㄹ': 'f', 'ㅁ': 'a', 'ㅂ': 'q', 'ㅃ': 'Q', 'ㅅ': 't',
+        'ㅆ': 'T', 'ㅇ': 'd', 'ㅈ': 'w', 'ㅉ': 'W', 'ㅊ': 'c',
+        'ㅋ': 'z', 'ㅌ': 'x', 'ㅍ': 'v', 'ㅎ': 'g'
+    }
+    jung = {
+        'ㅏ': 'k', 'ㅐ': 'o', 'ㅑ': 'i', 'ㅒ': 'O', 'ㅓ': 'j',
+        'ㅔ': 'p', 'ㅕ': 'u', 'ㅖ': 'P', 'ㅗ': 'h', 'ㅘ': 'hk',
+        'ㅙ': 'ho', 'ㅚ': 'hl', 'ㅛ': 'y', 'ㅜ': 'n', 'ㅝ': 'nj',
+        'ㅞ': 'np', 'ㅟ': 'nl', 'ㅠ': 'b', 'ㅡ': 'm', 'ㅢ': 'ml', 'ㅣ': 'l'
+    }
+    jong = {
+        ' ': '', 'ㄱ': 'r', 'ㄲ': 'R', 'ㄳ': 'rt', 'ㄴ': 's',
+        'ㄵ': 'sw', 'ㄶ': 'sg', 'ㄷ': 'e', 'ㄹ': 'f', 'ㄺ': 'fr',
+        'ㄻ': 'fa', 'ㄼ': 'fq', 'ㄽ': 'ft', 'ㄾ': 'fx', 'ㄿ': 'fv',
+        'ㅀ': 'fg', 'ㅁ': 'a', 'ㅂ': 'q', 'ㅄ': 'qt', 'ㅅ': 't',
+        'ㅆ': 'T', 'ㅇ': 'd', 'ㅈ': 'w', 'ㅊ': 'c', 'ㅋ': 'z',
+        'ㅌ': 'x', 'ㅍ': 'v', 'ㅎ': 'g'
+    }
+
+    result = ''
+    for char in text:
+        code = ord(char)
+        if '가' <= char <= '힣':
+            code -= 0xAC00
+            cho_idx = code // 588
+            jung_idx = (code % 588) // 28
+            jong_idx = code % 28
+
+            jong_list = [' ','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
+            cho_list  = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
+            jung_list = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ']
+
+            result += cho[cho_list[cho_idx]]
+            result += jung[jung_list[jung_idx]]
+            result += jong[jong_list[jong_idx]]
+        else:
+            result += char  # 한글 아니면 그대로
+
+    return result
+
 
 # 프로그램에 해당하는 video 업로드
 def upload_video(request):
@@ -299,6 +353,100 @@ def get_program_list(request):
             video_role = request.GET.get('video_role')
             programs = Program.objects.filter(video_role=video_role, use_yn=True).order_by('order').values()
             context['programs'] = list(programs)
+            return JsonResponse(context)
+    except Exception as e:
+        trace_back = traceback.format_exc()
+        logger.info("===== Error Raise "+request.path+"====")
+        logger.info(trace_back + "\n\n")
+        context['status'] = 'fail'
+        context['msg'] = e.message
+        context['self_path'] = request.path
+        return JsonResponse(context)
+    
+def get_account_list(request):
+    context = {}
+    try:
+        if request.method == 'GET':
+            auth_type = request.GET.get('auth_type')
+            is_active = request.GET.get('is_active')
+            search = request.GET.get('search')
+            # 계정 목록
+            with connection.cursor() as cursor:
+                query = """
+                    select  u.id as 'user_seq',
+                            u.account_id,
+                            u.`name`,
+                            og.`name` as 'org_name',
+                            u.auth_type,
+                            (select tc.`name`
+                                from tb_code tc
+                                where tc.`code` = u.auth_type) as 'auth_name',
+                            og.org_type,
+                            (select tc.`name`
+                                from tb_code tc
+                                where tc.`code` = og.org_type) as 'org_type_nm',
+                                u.reg_dt,
+                                u.is_active
+                    from tb_user u
+                         inner join tb_organization og
+                         on u.organization_id = og.id
+                    where 1=1
+                """
+                
+                search_query = " "
+                if auth_type:
+                    search_query = " and u.auth_type = '{}'".format(auth_type)
+                if is_active :
+                    search_query += " and u.is_active = {}".format(is_active)
+                if search:
+                    search_query += """
+                        and (
+                            u.account_id like '%{search}%' or 
+                            u.`name` like '%{search}%' or
+                            og.`name` like '%{search}%'
+                        )
+                    """.format(search=search)
+                
+                query += search_query
+                cursor.execute(query)
+                accounts = dictfetchall(cursor)
+
+                # 계정 토탈
+                total_query = """
+                    select count(*) as 'total'
+                    from tb_user u
+                         inner join tb_organization og
+                         on u.organization_id = og.id
+                    where 1=1
+                """
+                
+                total_query += search_query
+                cursor.execute(total_query)
+                total = dictfetchone(cursor)['total']
+                
+            context['status'] = 'success'
+            context['data'] = list(accounts)
+            context['recordsTotal'] = total
+            context['recordsFiltered'] = total
+            
+            return JsonResponse(context)
+    except Exception as e:
+        trace_back = traceback.format_exc()
+        logger.info("===== Error Raise "+request.path+"====")
+        logger.info(trace_back + "\n\n")
+        context['status'] = 'fail'
+        context['msg'] = e.message
+        context['self_path'] = request.path
+        return JsonResponse(context)
+
+def delete_accounts(request):
+    context = {}
+    try:
+        if request.method == 'POST':
+            account_ids = request.POST.getlist('del_list[]')
+            User.objects.filter(id__in=account_ids).update(is_active=False)
+            context['status'] = 'success'
+            context['msg'] = '선택한 계정이 삭제되었습니다.'
             return JsonResponse(context)
     except Exception as e:
         trace_back = traceback.format_exc()

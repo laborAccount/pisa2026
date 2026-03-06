@@ -13,6 +13,8 @@ WEEKDAYS = [
 ]
 
 def validate_weekdays(value):
+    if isinstance(value, list) and 'all' in value:  # ← ["all"] 허용
+        return
     if not isinstance(value, list):
         raise ValidationError('리스트여야 합니다.')
     for v in value:
@@ -29,6 +31,7 @@ class Organization(models.Model):
     ]
     name = models.CharField(max_length=100, db_comment='기관명')        # 기관명
     org_type = models.CharField(max_length=10, choices=ORG_TYPE, db_comment='기관유형')  # 기관유형
+    use_yn = models.BooleanField(default=True, db_comment='사용 여부')
     reg_dt = models.DateTimeField(auto_now_add=True, db_comment='등록일시')
     mod_dt = models.DateTimeField(auto_now=True, db_comment='수정일시')
     
@@ -38,6 +41,7 @@ class Organization(models.Model):
 
 class User(AbstractUser):
     """사용자계정"""
+    # 계정의 삭제 상태는 AbstractUser의 is_active 필드로 관리 (True: 활성, False: 비활성)
     AUTH_TYPE = [ # 엑셀 내 사용자 유형 통해 권한 구분
         ('AT01', '사이트관리자'),
         ('AT02', '모든권한'),

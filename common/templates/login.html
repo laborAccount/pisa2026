@@ -19,13 +19,14 @@
 	<div class="limiter">
 		<div class="container-login100">
 			<div class="wrap-login100">
-				<form class="login100-form validate-form">
-					<span class="login100-form-title p-b-26">
+				<form class="login100-form validate-form" action="{% url 'do_login' %}" method="post">
+                    {% csrf_token %}
+                    <span class="login100-form-title p-b-26">
 						PISA 2022<br />표집학교 책임자 및 감독 교사<br />온라인 연수
 					</span>
 
 					<div class="wrap-input100 validate-input" data-validate = "아이디를 입력하세요.">
-						<input class="input100" type="text" name="email">
+						<input class="input100" type="text" name="accountId">
 						<span class="focus-input100" data-placeholder="아이디"></span>
 					</div>
 
@@ -33,9 +34,15 @@
 						<span class="btn-show-pass">
 							<i class="zmdi zmdi-eye"></i>
 						</span>
-						<input class="input100" type="text" name="name">
+						<input class="input100" type="password" name="password">
 						<span class="focus-input100" data-placeholder="비밀번호"></span>
 					</div>
+
+                    {% if error %}
+                    <div class="text-center p-t-11" style="color:#e6185e; font-size:13px; margin-top:10px;">
+                        <i class="fa fa-exclamation-circle"></i> {{ error }}
+                    </div>
+                    {% endif %}
 
 					<div class="container-login100-form-btn">
 						<div class="wrap-login100-form-btn">
