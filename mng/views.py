@@ -306,6 +306,20 @@ def upload_video(request):
                     with open(save_path, 'wb') as f:
                         for chunk in uploaded_file.chunks():
                             f.write(chunk)
+                            
+                    # avi -> mp4 변환
+                    if ext == '.avi':
+                        mp4_path = os.path.join(file_path, server_file_name + '.mp4')
+                        (
+                            ffmpeg
+                            .input(save_path)
+                            .output(mp4_path, vcodec='libx264', acodec='aac')
+                            .run(overwrite_output=True, quiet=True)
+                        )
+                        os.remove(save_path)  # 원본 avi 삭제
+                        save_path = mp4_path  # 경로를 mp4로 교체
+                        ext = '.mp4'          # ext도 mp4로 교체       
+                    
                     # ffmpeg로 메타정보 추출
                     probe = ffmpeg.probe(save_path)
                     # video 스트림 META
