@@ -303,6 +303,17 @@
                             }
                             vjsPlayer.play();
                             startSaveLoop(info);  // 1분 주기 저장 시작
+                        
+                            // 일시정지 시 인터벌 중지
+                            vjsPlayer.on('pause', function() {
+                                stopSaveLoop();
+                                saveProgress(vjsPlayer);  // 멈출 때 현재 위치 저장
+                            });
+
+                            // 재생 시 인터벌 재시작
+                            vjsPlayer.on('play', function() {
+                                startSaveLoop(info);
+                            });
                         });
                         
                     }, 100);
@@ -341,19 +352,22 @@
         function saveProgress(player, duration) {
             if (!player || !currentMetaInfo.video_id) return;
 
-            const position = player.currentTime();
-            const section  = Math.floor(position / 60) + 1;  // 현재 분 구간
-
+            var position = player.currentTime();
+            var section  = Math.floor(position / 60) + 1;  // 현재 분 구간
+            console.log("saveProgress position >>>", position)
+            console.log("saveProgress section >>>", section)
             $.ajax({
                 url: "{% url 'video:save_progress' %}",
                 type: 'POST',
                 contentType: 'application/json',
+                headers: { 'X-CSRFToken': Cookies.get('csrftoken') },
                 data: JSON.stringify({
                     video_id: currentMetaInfo.video_id,
                     position: position,
                     section:  section
                 }),
                 success: function (res) {
+                    console.log("saveProgress res >>>",res)
                     if (res.is_completed) {
                         console.log('✅ 수강 완료!');
                         // 완료 배지 UI 업데이트 등

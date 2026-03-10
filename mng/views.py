@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.files import File
 from settings import settings
@@ -29,6 +30,8 @@ WEEKDAY_MAP = {
 
 # Create your views here.
 logger = logging.getLogger(__name__)
+
+@login_required(login_url='/')
 def account(request):
     context = {}
     auth = Code.objects.filter(group_code='001',order__gte=3).order_by('order').values()
@@ -38,8 +41,11 @@ def account(request):
     context['auth2'] = list(auth2)
     
     logger.info('context >>> %s', context)
-    return render(request, 'account.html', context)
-
+    if request.user.auth_type == 'AT01':
+        return render(request, 'account.html', context)
+    else :
+        return redirect('/')
+    
 
 # 엑셀 파일로 사용자 일괄 등록
 def regist_accounts(request):
